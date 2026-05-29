@@ -2,43 +2,43 @@
   "stable": true,
   "versions": {
     "1.0.0": {
-      "creationDate": "Thu, 29 May 2026 08:00:00 GMT",
-      "ts": "Thu, 29 May 2026 08:00:00 GMT",
-      "publishState": "published",
       "manifest": {
         "id": "io.benneic.cursorworker",
         "title": "Cursor Cloud Agent Worker",
-        "author": "Benn Eichhorn <benneic@users.noreply.github.com>",
+        "author": "Benn Eichhorn",
         "tagline": "Self-hosted Cursor Cloud Agent worker on your Cloudron",
-        "description": "Run a Cursor Cloud Agent worker (My Machines) on Cloudron. Pre-built image with Cursor CLI, browser automation, and an admin UI for auth and repository settings.",
-        "changelog": "* Initial release\n* My Machines worker (agent worker start)\n* Admin UI with browser sign-in and API key fallback\n* Fat image: Cursor CLI, Node 20, Playwright/Chromium, build tools",
-        "postInstallMessage": "Open **Configure** (`/admin`), connect Cursor, set your repository URL and worker name, then pick this machine at [cursor.com/agents](https://cursor.com/agents).",
         "version": "1.0.0",
-        "healthCheckPath": "/healthz",
-        "httpPort": 8000,
-        "memoryLimit": 4294967296,
-        "minBoxVersion": "9.1.0",
-        "configurePath": "/admin",
-        "website": "https://github.com/benneic/cloudron-cursor-workeragents",
-        "contactEmail": "benneic@users.noreply.github.com",
-        "documentationUrl": "https://github.com/benneic/cloudron-cursor-workeragents#readme",
-        "forumUrl": "https://forum.cloudron.io/category/96/app-packaging-development",
+        "description": "# Cursor Cloud Agent Worker for Cloudron\n\nRun a [Cursor Cloud Agent](https://cursor.com/docs/cloud-agent/my-machines) worker on your Cloudron server so agents execute in your environment—your repos, tools, and network—while Cursor handles orchestration.\n\n**Who this is for:** Cursor Pro or Personal with self-hosted cloud agents; **My Machines** workers (not Enterprise pools). One app install = one named worker.\n\n**What you get:** Cursor CLI, Node.js, git, build tools, Playwright/Chromium, admin UI at `/admin` (Cloudron login), persistent `/app/data`.\n",
+        "changelog": "* Initial release\n* My Machines worker (`agent worker start`)\n* Admin UI with browser sign-in and API key fallback\n* Fat image: Cursor CLI, Node 20, Playwright/Chromium, build tools\n",
+        "postInstallMessage": "\n## First steps\n\n1. Enable **self-hosted cloud agents** in your [Cursor Cloud Agents dashboard](https://cursor.com/agents).\n2. Open **Configure** (`/admin`) and sign in with your Cloudron account.\n3. **Connect with Cursor** (browser) or paste an **API key** under Advanced.\n4. Set repository URL, branch/ref, optional git token, and worker name; save.\n5. Pick this machine at [cursor.com/agents](https://cursor.com/agents).\n",
+        "icon": "file://icon.png",
         "iconUrl": "https://raw.githubusercontent.com/benneic/cloudron-cursor-workeragents/main/icon.png",
-        "dockerImage": "ghcr.io/benneic/cloudron-cursor-workeragents:latest",
+        "website": "https://github.com/benneic/cloudron-cursor-workeragents",
+        "documentationUrl": "https://github.com/benneic/cloudron-cursor-workeragents#readme",
+        "contactEmail": "change-me@example.com",
+        "configurePath": "/admin",
+        "packagerName": "Cursor Worker (Cloudron package) by @benneic",
+        "packagerUrl": "https://github.com/benneic/cloudron-cursor-workeragents",
         "tags": ["hosting", "git"],
         "mediaLinks": [
           "https://raw.githubusercontent.com/benneic/cloudron-cursor-workeragents/main/icon.png"
         ],
-        "packagerName": "Benn Eichhorn",
-        "packagerUrl": "https://github.com/benneic",
+        "healthCheckPath": "/healthz",
+        "httpPort": 8000,
+        "minBoxVersion": "9.1.0",
+        "memoryLimit": 4294967296,
+        "manifestVersion": 2,
         "addons": {
           "localstorage": {},
-          "proxyauth": {
+          "proxyAuth": {
             "path": "/admin"
           }
         },
-        "manifestVersion": 2
-      }
+        "dockerImage": "ghcr.io/benneic/cloudron-cursor-workeragents:1.0.0"
+      },
+      "creationDate": "Thu, 29 May 2026 08:00:00 GMT",
+      "ts": "Thu, 29 May 2026 08:00:00 GMT",
+      "publishState": "published"
     }
   }
 }

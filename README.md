@@ -41,7 +41,7 @@ Images are built on every push to `main`:
 - **Cursor auth:** browser device flow (`agent login`) or API key via `/admin`
 - **Repository:** clone/update HTTPS git repo into persistent `/app/data/workspace`
 - **Toolchain:** Cursor CLI, Node 20, git, build-essential, Playwright/Chromium
-- **Security:** Cloudron `proxyauth` on `/admin` only; public `/healthz` and status `/`
+- **Security:** Cloudron `proxyAuth` on `/admin` only; public `/healthz` and status `/`
 
 ## Requirements
 

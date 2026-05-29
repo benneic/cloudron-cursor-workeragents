@@ -1,7 +1,7 @@
 {
   "id": "io.benneic.cursorworker",
   "title": "Cursor Cloud Agent Worker",
-  "author": "Benn Eichhorn <benneic@users.noreply.github.com>",
+  "author": "Benn Eichhorn",
   "tagline": "Self-hosted Cursor Cloud Agent worker on your Cloudron",
   "description": "file://DESCRIPTION.md",
   "changelog": "file://CHANGELOG",
@@ -13,19 +13,20 @@
   "minBoxVersion": "9.1.0",
   "configurePath": "/admin",
   "website": "https://github.com/benneic/cloudron-cursor-workeragents",
-  "contactEmail": "benneic@users.noreply.github.com",
+  "contactEmail": "change-me@example.com",
   "documentationUrl": "https://github.com/benneic/cloudron-cursor-workeragents#readme",
   "forumUrl": "https://forum.cloudron.io/category/96/app-packaging-development",
+  "icon": "file://icon.png",
   "iconUrl": "https://raw.githubusercontent.com/benneic/cloudron-cursor-workeragents/main/icon.png",
   "tags": ["hosting", "git"],
   "mediaLinks": [
     "https://raw.githubusercontent.com/benneic/cloudron-cursor-workeragents/main/icon.png"
   ],
-  "packagerName": "Benn Eichhorn",
-  "packagerUrl": "https://github.com/benneic",
+  "packagerName": "Cursor Worker (Cloudron package) by @benneic",
+  "packagerUrl": "https://github.com/benneic/cloudron-cursor-workeragents",
   "addons": {
     "localstorage": {},
-    "proxyauth": {
+    "proxyAuth": {
       "path": "/admin"
     }
   },

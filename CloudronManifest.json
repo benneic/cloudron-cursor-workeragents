@@ -18,7 +18,9 @@
   "forumUrl": "https://forum.cloudron.io/category/96/app-packaging-development",
   "iconUrl": "https://raw.githubusercontent.com/benneic/cloudron-cursor-workeragents/main/icon.png",
   "tags": ["hosting", "git"],
-  "mediaLinks": [],
+  "mediaLinks": [
+    "https://raw.githubusercontent.com/benneic/cloudron-cursor-workeragents/main/icon.png"
+  ],
   "packagerName": "Benn Eichhorn",
   "packagerUrl": "https://github.com/benneic",
   "addons": {

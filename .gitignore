@@ -1,5 +1,7 @@
 node_modules/
 web/node_modules/
+cloudron-manifest-format-*.tgz
+package/
 .DS_Store
 *.log
 .env

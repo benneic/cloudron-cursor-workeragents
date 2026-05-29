@@ -1,0 +1,42 @@
+FROM cloudron/base:5.0.0@sha256:04fd70dbd8ad6149c19de39e35718e024417c3e01dc9c6637eaf4a41ec4e596c
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/code/playwright-browsers
+ENV PATH="/usr/local/bin:/root/.local/bin:/root/.cursor/bin:${PATH}"
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    supervisor \
+    build-essential \
+    python3 \
+    gnupg \
+ && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+ && apt-get install -y --no-install-recommends nodejs \
+ && rm -rf /var/lib/apt/lists/*
+
+# Cursor Agent CLI (system-wide)
+RUN curl https://cursor.com/install -fsS | bash \
+ && agent --version \
+ && ln -sf "$(command -v agent)" /usr/local/bin/agent 2>/dev/null || true
+
+RUN mkdir -p /app/code /app/data
+WORKDIR /app/code
+
+COPY web/package.json web/package-lock.json* /app/code/web/
+RUN cd /app/code/web && npm ci --omit=dev 2>/dev/null || npm install --omit=dev
+
+# Playwright Chromium for agent browser automation
+RUN mkdir -p "${PLAYWRIGHT_BROWSERS_PATH}" \
+ && cd /app/code/web \
+ && npx --yes playwright@1.49.1 install-deps chromium \
+ && npx --yes playwright@1.49.1 install chromium
+
+COPY . /app/code/
+
+RUN chmod +x /app/code/start.sh /app/code/scripts/worker-wrapper.sh \
+ && chown -R cloudron:cloudron /app/data
+
+CMD [ "/app/code/start.sh" ]

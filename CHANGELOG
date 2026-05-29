@@ -1,0 +1,9 @@
+# Changelog
+
+## 1.0.0 (2026-05-29)
+
+- Initial release
+- My Machines worker (`agent worker start`)
+- Admin UI with browser sign-in and API key fallback
+- Fat image: Cursor CLI, Node 20, Playwright/Chromium, build tools
+- Community distribution via CloudronVersions.json and GHCR images

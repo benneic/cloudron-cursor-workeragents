@@ -1,0 +1,9 @@
+.git
+.github
+README.md
+LICENSE
+CONTRIBUTING.md
+agent-tools
+.cursor
+node_modules
+web/node_modules

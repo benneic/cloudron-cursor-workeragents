@@ -1,0 +1,13 @@
+{
+  "name": "cloudron-cursor-worker-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Admin UI for Cloudron Cursor Cloud Agent Worker",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "playwright": "1.49.1"
+  }
+}

@@ -31,10 +31,12 @@ cloudron install --versions-url https://raw.githubusercontent.com/benneic/cloudr
 | **All Actions runs** | [actions](https://github.com/benneic/cloudron-cursor-workeragents/actions) |
 | **Container package (GHCR)** | [pkgs/container/cloudron-cursor-workeragents](https://github.com/benneic/cloudron-cursor-workeragents/pkgs/container/cloudron-cursor-workeragents) |
 
-Images are built on every push to `main`:
+Images are built when a **version tag** is pushed (e.g. `v1.0.1`), not on every commit to `main`:
 
-- `ghcr.io/benneic/cloudron-cursor-workeragents:latest`
-- `ghcr.io/benneic/cloudron-cursor-workeragents:sha-<commit>`
+- `ghcr.io/benneic/cloudron-cursor-workeragents:<semver>`
+- `ghcr.io/benneic/cloudron-cursor-workeragents:latest` (updated on each release)
+
+To release: see [.cursor/skills/release/SKILL.md](.cursor/skills/release/SKILL.md).
 
 ## Features
 

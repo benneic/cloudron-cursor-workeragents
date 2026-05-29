@@ -1,8 +1,12 @@
 name: Build and push image
 
+# Images are built on version tags only (v1.0.0), not on every commit to main.
+# See .cursor/skills/release/SKILL.md for the full release workflow.
+
 on:
   push:
-    branches: [main]
+    tags:
+      - "v*.*.*"
   workflow_dispatch:
 
 permissions:
@@ -20,6 +24,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Read package version
+        id: pkgver
+        run: echo "version=$(node -p "require('./CloudronManifest.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches CloudronManifest.json
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          MANIFEST_VERSION="${{ steps.pkgver.outputs.version }}"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} must match CloudronManifest.json version (${MANIFEST_VERSION})"
+            exit 1
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -30,19 +48,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Read package version
-        id: pkgver
-        run: echo "version=$(node -p "require('./CloudronManifest.json').version")" >> "$GITHUB_OUTPUT"
-
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ steps.pkgver.outputs.version }}
-            type=sha,prefix=sha-
+            type=raw,value=latest
 
       - name: Build and push
         uses: docker/build-push-action@v6

@@ -92,17 +92,39 @@ async function agentStatus() {
 }
 
 function parseLoginOutput(text) {
-  const urlMatch =
-    text.match(/https:\/\/[^\s\]]+/i) ||
+  const linkLine =
+    text.match(/navigate to this link:\s*(https:\/\/\S+)/i) ||
     text.match(/open[^\n]*?(https:\/\/\S+)/i);
+  const urlMatch =
+    linkLine ||
+    text.match(/https:\/\/cursor\.com\/\S+/i) ||
+    text.match(/https:\/\/[^\s\]"')]+/i);
   const codeMatch =
     text.match(/code[:\s]+([A-Z0-9-]{4,})/i) ||
     text.match(/device[^\n]*?([A-Z0-9]{4}-[A-Z0-9]{4})/i);
+  const url = urlMatch
+    ? (urlMatch[1] || urlMatch[0]).replace(/[)\],.'"']+$/, "")
+    : null;
   return {
-    url: urlMatch ? urlMatch[0].replace(/[)\],.]+$/, "") : null,
+    url,
     code: codeMatch ? codeMatch[1] : null,
     raw: text.slice(-8000),
   };
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForLoginUrl(timeoutMs = 25000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const info = parseLoginOutput(loginOutput);
+    if (info.url) return info;
+    if (!loginProcess && loginOutput.length > 0) break;
+    await sleep(300);
+  }
+  return parseLoginOutput(loginOutput);
 }
 
 function restartWorker() {
@@ -215,9 +237,52 @@ async function renderAdminPage(message = "", messageClass = "") {
            <button type="submit">Connect with Cursor</button>
          </form>
          <p class="muted">Opens Cursor sign-in in your browser (device flow). Complete login there, then return here.</p>
-         ${loginProcess ? `<p class="warn">Login in progress… refresh this page or check status below.</p>` : ""}
+         <div id="login-link-area">
+         ${loginProcess ? `<p class="warn">Login in progress…</p>` : ""}
          ${loginInfo.url ? `<p><a class="btn" href="${escapeHtml(loginInfo.url)}" target="_blank" rel="noopener">Open Cursor sign-in</a></p>` : ""}
-         ${loginInfo.code ? `<p>Device code: <strong>${escapeHtml(loginInfo.code)}</strong></p>` : ""}`;
+         ${loginInfo.code ? `<p>Device code: <strong>${escapeHtml(loginInfo.code)}</strong></p>` : ""}
+         ${!loginInfo.url && (loginProcess || loginInfo.raw) ? `<p class="muted" id="login-wait-msg">Waiting for sign-in link from Cursor CLI…</p>` : ""}
+         </div>
+         <script>
+         (function () {
+           const area = document.getElementById("login-link-area");
+           if (!area || area.querySelector("a.btn")) return;
+           const poll = async () => {
+             try {
+               const r = await fetch("/admin/connect/status");
+               const j = await r.json();
+               if (j.login && j.login.url) {
+                 const p = document.createElement("p");
+                 const a = document.createElement("a");
+                 a.className = "btn";
+                 a.href = j.login.url;
+                 a.target = "_blank";
+                 a.rel = "noopener";
+                 a.textContent = "Open Cursor sign-in";
+                 p.appendChild(a);
+                 area.replaceChildren(p);
+                 if (j.login.code) {
+                   const cp = document.createElement("p");
+                   cp.innerHTML = "Device code: <strong></strong>";
+                   cp.querySelector("strong").textContent = j.login.code;
+                   area.appendChild(cp);
+                 }
+                 const done = document.createElement("p");
+                 done.className = "muted";
+                 done.textContent = "Complete login in that tab, then refresh this page.";
+                 area.appendChild(done);
+                 return;
+               }
+               if (!j.loginInProgress && j.login && j.login.raw) {
+                 const wait = document.getElementById("login-wait-msg");
+                 if (wait) wait.textContent = "No link yet. Refresh or use API key below.";
+               }
+             } catch (e) { /* ignore */ }
+             setTimeout(poll, 800);
+           };
+           poll();
+         })();
+         </script>`;
 
   return htmlPage(
     "Admin — Cursor Worker",
@@ -320,7 +385,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "GET" && pathname === "/admin") {
+    if (req.method === "GET" && (pathname === "/admin" || pathname === "/admin/connect")) {
       const html = await renderAdminPage();
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(html);
@@ -354,13 +419,12 @@ const server = http.createServer(async (req, res) => {
         res.end(html);
         return;
       }
-      setTimeout(async () => {
-        /* allow background login */
-      }, 0);
-      const html = await renderAdminPage(
-        "Sign-in started. Click the link below, complete login in your browser, then refresh this page.",
-        "warn"
-      );
+      await waitForLoginUrl();
+      const loginInfo = parseLoginOutput(loginOutput);
+      const hint = loginInfo.url
+        ? "Open the link below, complete login in your browser, then refresh this page."
+        : "Sign-in started. Wait for the link below (or refresh in a few seconds), then complete login.";
+      const html = await renderAdminPage(hint, loginInfo.url ? "ok" : "warn");
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(html);
       return;

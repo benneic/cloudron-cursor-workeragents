@@ -4,11 +4,11 @@
 
 Cloudron **community app** that runs a [Cursor Cloud Agent](https://cursor.com/docs/cloud-agent/my-machines) worker (Pro/Personal, **My Machines**) on your server.
 
-Each install is one worker—use separate subdomains for `worker-1`, `worker-2`, etc.
+Each install is one worker—use separate subdomains for `cursor-worker-1`, `cursor-worker-2`, etc.
 
 ## Install on Cloudron
 
-1. In the Cloudron dashboard, go to **Settings → Community apps** and add:
+1. In your Cloudron dashboard, go to **App Store → Add custom app → Community app** and add:
 
    ```
    https://raw.githubusercontent.com/benneic/cloudron-cursor-workeragents/main/CloudronVersions.json

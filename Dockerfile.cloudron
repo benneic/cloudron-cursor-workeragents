@@ -17,10 +17,15 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends nodejs \
  && rm -rf /var/lib/apt/lists/*
 
-# Cursor Agent CLI (system-wide)
+# Cursor Agent CLI — install under /opt (not /root) so user cloudron can execute it
 RUN curl https://cursor.com/install -fsS | bash \
  && agent --version \
- && ln -sf "$(command -v agent)" /usr/local/bin/agent 2>/dev/null || true
+ && AGENT_VER_DIR="$(dirname "$(readlink -f "$(command -v agent)")")" \
+ && mkdir -p /opt/cursor-agent \
+ && cp -a "${AGENT_VER_DIR}/." /opt/cursor-agent/ \
+ && chmod -R a+rX /opt/cursor-agent \
+ && ln -sf /opt/cursor-agent/cursor-agent /usr/local/bin/agent \
+ && gosu cloudron:cloudron /usr/local/bin/agent --version
 
 RUN mkdir -p /app/code /app/data
 WORKDIR /app/code

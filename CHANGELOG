@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1 (2026-05-30)
+
+- Fix Cursor CLI install under `/opt/cursor-agent` so the `cloudron` user can run `agent`
+- Bootstrap agent binary to `/app/data` on start for older image layouts
+- Fix git operations to use `HOME=/app/data` (avoids read-only `/home/cloudron`)
+- Admin connect: wait for device-flow URL and poll `/admin/connect/status`
+- Report API key auth as authenticated in connect status without calling `agent status`
+
 ## 1.0.0 (2026-05-29)
 
 - Initial release

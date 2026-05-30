@@ -13,6 +13,7 @@ const CONFIG_PATH = process.env.CONFIG_PATH || "/app/data/config.json";
 const DATA_DIR = process.env.DATA_DIR || "/app/data";
 const SUPERVISOR_SOCK = process.env.SUPERVISOR_SOCK || "unix:///run/supervisor.sock";
 const CURSOR_SETTINGS_URL = "https://cursor.com/dashboard?tab=integrations";
+const AGENT_BIN = process.env.AGENT_BIN || "/usr/local/bin/agent";
 
 let loginProcess = null;
 let loginOutput = "";
@@ -66,8 +67,8 @@ function redactConfig(config) {
   };
 }
 
-async function runAsCloudron(cmd, args, options = {}) {
-  const fullArgs = ["cloudron:cloudron", cmd, ...args];
+async function runAsCloudron(subcommand, args, options = {}) {
+  const fullArgs = ["cloudron:cloudron", AGENT_BIN, subcommand, ...args];
   return execFileAsync("gosu", fullArgs, {
     env: {
       ...process.env,
@@ -83,8 +84,12 @@ async function runAsCloudron(cmd, args, options = {}) {
 }
 
 async function agentStatus() {
+  const config = readConfig();
+  if (config?.authMethod === "api_key" && config?.cursorApiKey) {
+    return { ok: true, stdout: "Authenticated via API key (config.json)." };
+  }
   try {
-    const { stdout } = await runAsCloudron("agent", ["status"], { timeout: 15000 });
+    const { stdout } = await runAsCloudron("status", [], { timeout: 15000 });
     return { ok: true, stdout: stdout.trim() };
   } catch (err) {
     return { ok: false, stderr: (err.stderr || err.message || "").toString().trim() };
@@ -347,7 +352,7 @@ async function startLogin() {
   loginOutput = "";
   loginProcess = spawn(
     "gosu",
-    ["cloudron:cloudron", "agent", "login"],
+    ["cloudron:cloudron", AGENT_BIN, "login"],
     {
       env: {
         ...process.env,
@@ -398,7 +403,11 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
-          authenticated: auth.ok && !/not authenticated|login required/i.test(auth.stdout + auth.stderr),
+          authenticated:
+            auth.ok &&
+            !/not authenticated|login required/i.test(
+              (auth.stdout || "") + (auth.stderr || "")
+            ),
           loginInProgress: Boolean(loginProcess),
           login: loginInfo,
           agent: auth,
@@ -432,7 +441,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && pathname === "/admin/disconnect") {
       try {
-        await runAsCloudron("agent", ["logout"], { timeout: 30000 });
+        await runAsCloudron("logout", [], { timeout: 30000 });
       } catch {
         /* ignore */
       }

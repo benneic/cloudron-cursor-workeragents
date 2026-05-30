@@ -4,6 +4,8 @@ set -euo pipefail
 CONFIG_PATH="${CONFIG_PATH:-/app/data/config.json}"
 WORKER_DIR="/app/data/workspace"
 HEARTBEAT="/app/data/worker-heartbeat.json"
+AGENT_BIN="${AGENT_BIN:-/usr/local/bin/agent}"
+CLOUDRON_HOME="/app/data"
 
 log() {
   echo "[worker-wrapper] $*" >&2
@@ -68,7 +70,7 @@ configure_git_auth() {
   fi
   local repo_host
   repo_host="$(printf '%s' "$TARGET_REPOSITORY" | sed -E 's#https?://([^/]+)/.*#\1#')"
-  gosu cloudron:cloudron git config --global \
+  gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git config --global \
     "url.https://${GIT_USERNAME}:${GIT_TOKEN}@${repo_host}/.insteadOf" \
     "https://${repo_host}/"
 }
@@ -76,14 +78,14 @@ configure_git_auth() {
 clone_or_update_repo() {
   if [[ ! -d "$WORKER_DIR/.git" ]]; then
     rm -rf "$WORKER_DIR"
-    gosu cloudron:cloudron git clone "$TARGET_REPOSITORY" "$WORKER_DIR"
+    gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git clone "$TARGET_REPOSITORY" "$WORKER_DIR"
   else
-    gosu cloudron:cloudron git -C "$WORKER_DIR" remote set-url origin "$TARGET_REPOSITORY"
-    gosu cloudron:cloudron git -C "$WORKER_DIR" fetch origin --tags --prune
+    gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git -C "$WORKER_DIR" remote set-url origin "$TARGET_REPOSITORY"
+    gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git -C "$WORKER_DIR" fetch origin --tags --prune
   fi
   if [[ -n "${TARGET_REF:-}" ]]; then
-    gosu cloudron:cloudron git -C "$WORKER_DIR" fetch origin "$TARGET_REF" --depth 1
-    gosu cloudron:cloudron git -C "$WORKER_DIR" checkout --detach FETCH_HEAD
+    gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git -C "$WORKER_DIR" fetch origin "$TARGET_REF" --depth 1
+    gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git -C "$WORKER_DIR" checkout --detach FETCH_HEAD
   fi
 }
 
@@ -104,6 +106,6 @@ log "Starting agent worker as $WORKER_NAME"
 write_heartbeat "running" "$WORKER_NAME"
 
 exec gosu cloudron:cloudron env \
-  HOME=/app/data \
+  HOME="$CLOUDRON_HOME" \
   PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/app/code/playwright-browsers}" \
-  agent "${WORKER_ARGS[@]}"
+  "$AGENT_BIN" "${WORKER_ARGS[@]}"

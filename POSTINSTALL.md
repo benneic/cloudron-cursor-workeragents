@@ -22,5 +22,5 @@ Use `worker=<name>` in Slack or GitHub (`@cursoragent worker=my-worker ...`) whe
 ## Troubleshooting
 
 - **Worker not in Cursor UI:** Check logs (`cloudron logs`), confirm auth and repo URL, ensure outbound HTTPS is allowed.
-- **Private git repo:** Add a GitHub/GitLab personal access token in admin.
+- **Private GitHub repo (403 / access denied):** In `/admin`, add a **GitHub personal access token** (not your Cursor API key). Create one at [github.com/settings/personal-access-tokens](https://github.com/settings/personal-access-tokens). Classic tokens need the `repo` scope; fine-grained tokens need **Contents: Read-only** on the repository.
 - **Browser tests fail:** Ensure the app has enough RAM; Chromium runs inside the container.

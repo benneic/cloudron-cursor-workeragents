@@ -66,7 +66,9 @@ configure_git_auth() {
   fi
   if [[ "$TARGET_REPOSITORY" != https://* ]]; then
     log "GIT_TOKEN supports HTTPS repository URLs only"
-    exit 1
+    write_heartbeat "error" "git_https_required"
+    sleep 60
+    exit 0
   fi
   local repo_host
   repo_host="$(printf '%s' "$TARGET_REPOSITORY" | sed -E 's#https?://([^/]+)/.*#\1#')"
@@ -75,17 +77,41 @@ configure_git_auth() {
     "https://${repo_host}/"
 }
 
+git_fail() {
+  local err="$1"
+  log "Git error: $err"
+  if grep -qiE '403|401|authentication|not granted|permission denied|invalid username|password' <<<"$err"; then
+    write_heartbeat "error" "git_auth_failed"
+  elif [[ -z "${GIT_TOKEN:-}" ]]; then
+    write_heartbeat "error" "git_token_required"
+  else
+    write_heartbeat "error" "git_clone_failed"
+  fi
+  sleep 60
+  exit 0
+}
+
+run_git() {
+  local err_file
+  err_file="$(mktemp)"
+  if ! gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" "$@" 2>"$err_file"; then
+    cat "$err_file" >&2
+    git_fail "$(cat "$err_file")"
+  fi
+  rm -f "$err_file"
+}
+
 clone_or_update_repo() {
   if [[ ! -d "$WORKER_DIR/.git" ]]; then
     rm -rf "$WORKER_DIR"
-    gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git clone "$TARGET_REPOSITORY" "$WORKER_DIR"
+    run_git git clone "$TARGET_REPOSITORY" "$WORKER_DIR"
   else
-    gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git -C "$WORKER_DIR" remote set-url origin "$TARGET_REPOSITORY"
-    gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git -C "$WORKER_DIR" fetch origin --tags --prune
+    run_git git -C "$WORKER_DIR" remote set-url origin "$TARGET_REPOSITORY"
+    run_git git -C "$WORKER_DIR" fetch origin --tags --prune
   fi
   if [[ -n "${TARGET_REF:-}" ]]; then
-    gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git -C "$WORKER_DIR" fetch origin "$TARGET_REF" --depth 1
-    gosu cloudron:cloudron env HOME="$CLOUDRON_HOME" git -C "$WORKER_DIR" checkout --detach FETCH_HEAD
+    run_git git -C "$WORKER_DIR" fetch origin "$TARGET_REF" --depth 1
+    run_git git -C "$WORKER_DIR" checkout --detach FETCH_HEAD
   fi
 }
 

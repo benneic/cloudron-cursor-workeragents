@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2 (2026-05-30)
+
+- Surface Git PAT permission errors in admin UI with link to GitHub token settings
+- Worker writes clear heartbeat codes on git clone/auth failures (avoids supervisor FATAL loop)
+- Repository section documents classic `repo` vs fine-grained Contents read scopes
+
 ## 1.0.1 (2026-05-30)
 
 - Fix Cursor CLI install under `/opt/cursor-agent` so the `cloudron` user can run `agent`

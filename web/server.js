@@ -13,6 +13,7 @@ const CONFIG_PATH = process.env.CONFIG_PATH || "/app/data/config.json";
 const DATA_DIR = process.env.DATA_DIR || "/app/data";
 const SUPERVISOR_SOCK = process.env.SUPERVISOR_SOCK || "unix:///run/supervisor.sock";
 const CURSOR_SETTINGS_URL = "https://cursor.com/dashboard?tab=integrations";
+const GITHUB_PAT_URL = "https://github.com/settings/personal-access-tokens";
 const AGENT_BIN = process.env.AGENT_BIN || "/usr/local/bin/agent";
 
 let loginProcess = null;
@@ -177,6 +178,10 @@ function htmlPage(title, body) {
     pre { background: #f4f4f4; padding: 0.75rem; overflow: auto; font-size: 0.8rem; }
     details { margin-top: 1rem; }
     .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    .alert { border: 1px solid #e0c080; background: #fff8e8; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    .alert.err { border-color: #e8b4b4; background: #fff5f5; }
+    .alert h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+    .alert ul { margin: 0.5rem 0 0; padding-left: 1.25rem; }
   </style>
 </head>
 <body>
@@ -202,6 +207,15 @@ async function renderStatusPage() {
       ? '<span class="ok">Cursor: API key configured</span>'
       : '<span class="warn">Cursor: not authenticated</span>';
 
+  const workerLine =
+    heartbeat?.state === "running"
+      ? `<span class="ok">Worker: running</span>`
+      : heartbeat?.state === "error"
+        ? `<span class="err">Worker: error</span>`
+        : heartbeat?.state
+          ? `<span class="warn">Worker: ${escapeHtml(heartbeat.state)}</span>`
+          : "<span class=\"warn\">Worker: unknown</span>";
+
   return htmlPage(
     "Cursor Worker",
     `<h1>Cursor Cloud Agent Worker</h1>
@@ -210,8 +224,9 @@ async function renderStatusPage() {
   <li>${authLine}</li>
   <li>Repository: ${redacted?.targetRepository ? escapeHtml(redacted.targetRepository) : "<em>not set</em>"}</li>
   <li>Worker name: ${escapeHtml(redacted?.workerName || "—")}</li>
-  <li>Worker process: ${heartbeat ? escapeHtml(heartbeat.state) : "unknown"}${mgmt ? ' <span class="ok">(management OK)</span>' : ""}</li>
+  <li>${workerLine}${mgmt ? ' <span class="ok">(management OK)</span>' : ""}</li>
 </ul>
+${renderWorkerAlert(heartbeat)}
 <p><a class="btn" href="/admin">Configure</a></p>
 <p class="muted">Admin settings are protected by Cloudron login at <code>/admin</code>.</p>`
   );
@@ -225,10 +240,75 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+function gitPatHelpBlock() {
+  return `<div class="alert">
+  <h3>Private GitHub repository</h3>
+  <p class="muted">Use a <strong>GitHub personal access token</strong> below — not your Cursor API key.</p>
+  <ul>
+    <li>Create a token at <a href="${GITHUB_PAT_URL}" target="_blank" rel="noopener">github.com/settings/personal-access-tokens</a></li>
+    <li><strong>Classic token:</strong> enable the <code>repo</code> scope (private repository access)</li>
+    <li><strong>Fine-grained token:</strong> select your repository and grant <strong>Contents: Read-only</strong></li>
+    <li>Paste the token in <strong>Git token</strong>, then <strong>Save &amp; restart worker</strong></li>
+  </ul>
+</div>`;
+}
+
+function renderWorkerAlert(heartbeat) {
+  if (!heartbeat || heartbeat.state !== "error") return "";
+
+  const detail = heartbeat.detail || "";
+  const at = heartbeat.at ? `<p class="muted">Last checked: ${escapeHtml(heartbeat.at)}</p>` : "";
+
+  if (detail === "git_auth_failed") {
+    return `<div class="alert err">
+  <h3>Git access denied (HTTP 403)</h3>
+  <p>Git could not clone or fetch your repository. The token is missing, expired, or lacks permission for this repo.</p>
+  <ul>
+    <li>Open <a href="${GITHUB_PAT_URL}" target="_blank" rel="noopener">GitHub personal access tokens</a> and create or update a token</li>
+    <li><strong>Classic:</strong> <code>repo</code> scope &nbsp;·&nbsp; <strong>Fine-grained:</strong> <code>Contents: Read-only</code> on the target repository</li>
+    <li>Re-enter the token under <strong>Git token</strong> and save (leave blank to keep the current token)</li>
+  </ul>
+  ${at}
+</div>`;
+  }
+
+  if (detail === "git_token_required") {
+    return `<div class="alert err">
+  <h3>Git token required</h3>
+  <p>This repository appears to need authentication. Add a personal access token below.</p>
+  ${at}
+</div>`;
+  }
+
+  if (detail === "git_clone_failed") {
+    return `<div class="alert err">
+  <h3>Repository sync failed</h3>
+  <p>Check the repository URL, branch/ref, and git token. See <code>cloudron logs</code> for details.</p>
+  ${at}
+</div>`;
+  }
+
+  if (detail === "git_https_required") {
+    return `<div class="alert err">
+  <h3>HTTPS repository required</h3>
+  <p>Use an <code>https://</code> git URL (not SSH).</p>
+  ${at}
+</div>`;
+  }
+
+  return `<div class="alert err">
+  <h3>Worker error</h3>
+  <p><code>${escapeHtml(detail)}</code></p>
+  ${at}
+</div>`;
+}
+
 async function renderAdminPage(message = "", messageClass = "") {
   const config = readConfig() || defaultConfig();
   const auth = await agentStatus();
   const loginInfo = parseLoginOutput(loginOutput);
+  const heartbeat = readHeartbeat();
+  const workerAlert = renderWorkerAlert(heartbeat);
 
   const msg = message
     ? `<p class="${messageClass}">${escapeHtml(message)}</p>`
@@ -309,8 +389,10 @@ ${msg}
   </details>
   ${auth.ok ? `<pre>${escapeHtml(auth.stdout)}</pre>` : ""}
 </div>
+${workerAlert}
 <div class="card">
   <h2>Repository</h2>
+  ${gitPatHelpBlock()}
   <form method="post" action="/admin/save">
     <label>Repository URL (HTTPS)
       <input type="url" name="targetRepository" required value="${escapeHtml(config.targetRepository || "")}" placeholder="https://github.com/org/repo" />
@@ -319,7 +401,7 @@ ${msg}
       <input type="text" name="targetRef" value="${escapeHtml(config.targetRef || "main")}" />
     </label>
     <label>Git token (private repos)
-      <input type="password" name="gitToken" autocomplete="off" placeholder="${config.gitToken ? "••••••••" : "optional"}" />
+      <input type="password" name="gitToken" autocomplete="off" placeholder="${config.gitToken ? "•••••••• (leave blank to keep)" : "required for private repos"}" />
     </label>
     <label>Worker name (for worker= triggers)
       <input type="text" name="workerName" value="${escapeHtml(config.workerName || process.env.CLOUDRON_APP_LOCATION || "cursor-worker")}" />
